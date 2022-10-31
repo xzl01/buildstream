@@ -1,0 +1,92 @@
+# Autotools default configurations
+
+variables:
+
+  autogen: |
+    export NOCONFIGURE=1;
+
+    if [ -x %{conf-cmd} ]; then true;
+    elif [ -x autogen ]; then ./autogen;
+    elif [ -x autogen.sh ]; then ./autogen.sh;
+    elif [ -x bootstrap ]; then ./bootstrap;
+    elif [ -x bootstrap.sh ]; then ./bootstrap.sh;
+    else autoreconf -ivf;
+    fi
+
+  # Project-wide extra arguments to be passed to `configure`
+  conf-global: ''
+
+  # Element-specific extra arguments to be passed to `configure`.
+  conf-local: ''
+
+  # For backwards compatibility only, do not use.
+  conf-extra: ''
+
+  conf-cmd: ./configure
+  conf-args: |
+
+    --prefix=%{prefix} \
+    --exec-prefix=%{exec_prefix} \
+    --bindir=%{bindir} \
+    --sbindir=%{sbindir} \
+    --sysconfdir=%{sysconfdir} \
+    --datadir=%{datadir} \
+    --includedir=%{includedir} \
+    --libdir=%{libdir} \
+    --libexecdir=%{libexecdir} \
+    --localstatedir=%{localstatedir} \
+    --sharedstatedir=%{sharedstatedir} \
+    --mandir=%{mandir} \
+    --infodir=%{infodir} %{conf-extra} %{conf-global} %{conf-local}
+
+  configure: |
+
+    %{conf-cmd} %{conf-args}
+
+  make: make
+  make-install: make -j1 DESTDIR="%{install-root}" install
+
+  # Set this if the sources cannot handle parallelization.
+  #
+  # notparallel: True
+
+config:
+
+  # Commands for configuring the software
+  #
+  configure-commands:
+  - |
+    %{autogen}
+  - |
+    %{configure}
+
+  # Commands for building the software
+  #
+  build-commands:
+  - |
+    %{make}
+
+  # Commands for installing the software into a
+  # destination folder
+  #
+  install-commands:
+  - |
+    %{make-install}
+
+  # Commands for stripping debugging information out of
+  # installed binaries
+  #
+  strip-commands:
+  - |
+    %{strip-binaries}
+
+# Use max-jobs CPUs for building and enable verbosity
+environment:
+  MAKEFLAGS: -j%{max-jobs}
+  V: 1
+
+# And dont consider MAKEFLAGS or V as something which may
+# effect build output.
+environment-nocache:
+- MAKEFLAGS
+- V

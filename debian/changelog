@@ -1,0 +1,49 @@
+buildstream (1.6.1-1) unstable; urgency=medium
+
+  * New upstream release
+  * Bump debhelper-compat to 13
+  * Update patch
+  * debian/control.in: Don't Build-Depend on python3-pip or python3-wheel
+  * Recommend git, python3-gi, & gir1.2-ostree-1.0 (Closes: #962212)
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sat, 28 Aug 2021 20:22:56 -0400
+
+buildstream (1.4.3-0.1) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * New upstream release.
+    - Works with Python 3.8. (Closes: #962197)
+  * Add the missing dependency on bubblewrap. (Closes: #962205)
+
+ -- Adrian Bunk <bunk@debian.org>  Sat, 18 Jul 2020 10:03:58 +0300
+
+buildstream (1.4.1-1) unstable; urgency=medium
+
+  * New upstream release (Closes: #933395)
+  * Depend on python3-fuse
+  * Build-Depend on python3-fuse and python3-ujson for tests
+  * Build-Depend on dh-sequence-gnome and dh-sequence-python3
+  * Update adjust-test-dependencies.patch
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sat, 28 Sep 2019 18:31:09 -0400
+
+buildstream (1.2.4-1) unstable; urgency=medium
+
+  * New upstream release
+  * Improve running tests but continue to ignore test failures
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sat, 16 Feb 2019 21:37:08 -0500
+
+buildstream (1.2.3-2) unstable; urgency=medium
+
+  * Have buildstream recommend python3-bst-external
+  * Build-Depend on debhelper-compat 12 and drop debian/compat
+  * Bump Standards-Version to 4.3.0
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sun, 20 Jan 2019 17:26:11 -0500
+
+buildstream (1.2.3-1) unstable; urgency=medium
+
+  * Initial release (Closes: #916668)
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sun, 16 Dec 2018 21:27:38 -0500

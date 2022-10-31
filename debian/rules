@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+
+export PYBUILD_TEST_PYTEST = 0
+
+%:
+	dh $@ --buildsystem=pybuild
+
+execute_after_dh_install:
+	# Maybe this should be in a separate package
+	# But for now, it doesn't seem necessary for most users
+	rm -f debian/buildstream/usr/bin/bst-artifact-server
+
+# The tests don't work in Debian. Not sure they're very useful for us.
+override_dh_auto_test:
+	-PYBUILD_SYSTEM=custom PYBUILD_TEST_ARGS="{interpreter} setup.py test" dh_auto_test

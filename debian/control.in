@@ -1,0 +1,79 @@
+Source: buildstream
+Section: gnome
+Priority: optional
+Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
+Uploaders: @GNOME_TEAM@
+Build-Depends: debhelper-compat (= 13),
+               bubblewrap,
+               dh-sequence-gnome,
+               dh-sequence-python3,
+               python3,
+               python3-click <!nocheck>,
+               python3-coverage <!nocheck>,
+               python3-fuse <!nocheck>,
+               python3-grpcio <!nocheck>,
+               python3-jinja2 <!nocheck>,
+               python3-pluginbase <!nocheck>,
+               python3-protobuf <!nocheck>,
+               python3-psutil <!nocheck>,
+               python3-pytest <!nocheck>,
+               python3-pytest-cov <!nocheck>,
+               python3-pytest-pep8 <!nocheck>,
+               python3-pytest-pylint <!nocheck>,
+               python3-pytest-runner,
+               python3-pytest-timeout <!nocheck>,
+               python3-pytest-xdist <!nocheck>,
+               python3-ruamel.yaml <!nocheck>,
+               python3-setuptools,
+               python3-ujson <!nocheck>,
+Standards-Version: 4.3.0
+Rules-Requires-Root: no
+Vcs-Browser: https://salsa.debian.org/gnome-team/buildstream
+Vcs-Git: https://salsa.debian.org/gnome-team/buildstream.git
+Homepage: https://buildstream.build/
+
+Package: buildstream
+Architecture: all
+Depends: ${misc:Depends},
+         ${python3:Depends},
+         python3-buildstream (= ${binary:Version})
+Recommends: gir1.2-ostree-1.0,
+            git,
+            python3-bst-external,
+            python3-gi
+Description: toolset for the Buildstream project
+ BuildStream is a GNOME project to improve the continuous integration
+ of complex systems and applications. The project aims to pay special
+ attention to those developers and integrators who care about the
+ maintainability of their projects during a long period of time.
+ .
+ BuildStream is also a powerful and flexible software integration toolset.
+ It has been designed to create different outputs out of a unique input
+ and, at the same time, it is able to adapt to complex workflows, even
+ when additional build tools are required. An important part of
+ BuildStream is a sister project called BuildGrid, that allows
+ BuildStream to build at scale.
+ .
+ This package provides the toolset, accessible with the `bst` command.
+
+Package: python3-buildstream
+Section: python
+Architecture: all
+Depends: ${misc:Depends},
+         bubblewrap,
+         ${python3:Depends},
+         python3-fuse
+Description: Python library for BuildStream toolset
+ BuildStream is a GNOME project to improve the continuous integration
+ of complex systems and applications. The project aims to pay special
+ attention to those developers and integrators who care about the
+ maintainability of their projects during a long period of time.
+ .
+ BuildStream is also a powerful and flexible software integration toolset.
+ It has been designed to create different outputs out of a unique input
+ and, at the same time, it is able to adapt to complex workflows, even
+ when additional build tools are required. An important part of
+ BuildStream is a sister project called BuildGrid, that allows
+ BuildStream to build at scale.
+ .
+ This package provides the Python3 libraries.

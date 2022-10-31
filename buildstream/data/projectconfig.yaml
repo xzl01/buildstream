@@ -1,0 +1,191 @@
+# Default BuildStream project configuration.
+
+
+# General configuration defaults
+#
+
+# Require format version 0
+format-version: 0
+
+# Elements are found at the project root
+element-path: .
+
+# Store source references in element files
+ref-storage: inline
+
+# Variable Configuration
+#
+variables:
+  # Path configuration, to be used in build instructions.
+  prefix: "/usr"
+  exec_prefix: "%{prefix}"
+  bindir: "%{exec_prefix}/bin"
+  sbindir: "%{exec_prefix}/sbin"
+  libexecdir: "%{exec_prefix}/libexec"
+  datadir: "%{prefix}/share"
+  sysconfdir: "/etc"
+  sharedstatedir: "%{prefix}/com"
+  localstatedir: "/var"
+  lib: "lib"
+  libdir: "%{prefix}/%{lib}"
+  debugdir: "%{libdir}/debug"
+  includedir: "%{prefix}/include"
+  docdir: "%{datadir}/doc"
+  infodir: "%{datadir}/info"
+  mandir: "%{datadir}/man"
+
+  # Indicates the default build directory where input is
+  # normally staged
+  build-root: /buildstream/%{project-name}/%{element-name}
+
+  # Indicates the build installation directory in the sandbox
+  install-root: /buildstream-install
+
+  # Arguments for tooling used when stripping debug symbols
+  objcopy-link-args: --add-gnu-debuglink
+  objcopy-extract-args: |
+
+    --only-keep-debug --compress-debug-sections
+
+  strip-args: |
+
+    --remove-section=.comment --remove-section=.note --strip-unneeded
+
+  # Generic implementation for stripping debugging symbols
+  strip-binaries: |
+
+    cd "%{install-root}" && find -type f \
+      '(' -perm -111 -o -name '*.so*' \
+          -o -name '*.cmxs' -o -name '*.node' ')' \
+      -exec sh -ec \
+      'read -n4 hdr <"$1" # check for elf header
+       if [ "$hdr" != "$(printf \\x7fELF)" ]; then
+           exit 0
+       fi
+       debugfile="%{install-root}%{debugdir}/$1"
+       mkdir -p "$(dirname "$debugfile")"
+       objcopy %{objcopy-extract-args} "$1" "$debugfile"
+       chmod 644 "$debugfile"
+       strip %{strip-args} "$1"
+       objcopy %{objcopy-link-args} "$debugfile" "$1"' - {} ';'
+
+  # Generic implementation for reproducible python builds
+  fix-pyc-timestamps: |
+
+    find "%{install-root}" -name '*.pyc' -exec \
+      dd if=/dev/zero of={} bs=1 count=4 seek=4 conv=notrunc ';'
+
+# Base sandbox environment, can be overridden by plugins
+environment:
+  PATH: /usr/bin:/bin:/usr/sbin:/sbin
+  SHELL: /bin/sh
+  TERM: dumb
+  USER: tomjon
+  USERNAME: tomjon
+  LOGNAME: tomjon
+  LC_ALL: C
+  HOME: /tmp
+  TZ: UTC
+
+  # For reproducible builds we use 2011-11-11 as a constant
+  SOURCE_DATE_EPOCH: 1320937200
+
+# List of environment variables which should not be taken into
+# account when calculating a cache key for a given element.
+#
+environment-nocache: []
+
+# Configuration for the sandbox other than environment variables
+# should go in 'sandbox'. This just contains the UID and GID that
+# the user in the sandbox will have. Not all sandboxes will support
+# changing the values.
+sandbox:
+  build-uid: 0
+  build-gid: 0
+
+# Defaults for the 'split-rules' public data found on elements
+# in the 'bst' domain.
+#
+split-rules:
+
+  # The runtime domain includes whatever is needed for the
+  # built element to run, this includes stripped executables
+  # and shared libraries by default.
+  runtime:
+  - |
+    %{bindir}/*
+  - |
+    %{sbindir}/*
+  - |
+    %{libexecdir}/*
+  - |
+    %{libdir}/lib*.so*
+
+  # The devel domain includes additional things which
+  # you may need for development.
+  #
+  # By default this includes header files, static libraries
+  # and other metadata such as pkgconfig files, m4 macros and
+  # libtool archives.
+  devel:
+  - |
+    %{includedir}
+  - |
+    %{includedir}/**
+  - |
+    %{libdir}/lib*.a
+  - |
+    %{libdir}/lib*.la
+  - |
+    %{libdir}/pkgconfig/*.pc
+  - |
+    %{datadir}/pkgconfig/*.pc
+  - |
+    %{datadir}/aclocal/*.m4
+
+  # The debug domain includes debugging information stripped
+  # away from libraries and executables
+  debug:
+  - |
+    %{debugdir}
+  - |
+    %{debugdir}/**
+
+  # The doc domain includes documentation
+  doc:
+  - |
+    %{docdir}
+  - |
+    %{docdir}/**
+  - |
+    %{infodir}
+  - |
+    %{infodir}/**
+  - |
+    %{mandir}
+  - |
+    %{mandir}/**
+
+  # The locale domain includes translations etc
+  locale:
+  - |
+    %{datadir}/locale
+  - |
+    %{datadir}/locale/**
+  - |
+    %{datadir}/i18n
+  - |
+    %{datadir}/i18n/**
+  - |
+    %{datadir}/zoneinfo
+  - |
+    %{datadir}/zoneinfo/**
+
+
+# Default behavior for `bst shell`
+#
+shell:
+
+  # Command to run when `bst shell` does not provide a command
+  #
+  command: [ 'sh', '-i' ]

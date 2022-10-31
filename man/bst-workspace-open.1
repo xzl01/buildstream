@@ -1,0 +1,18 @@
+.TH "BST WORKSPACE OPEN" "1" "14-Jul-2019" "" "bst workspace open Manual"
+.SH NAME
+bst\-workspace\-open \- Open a new workspace
+.SH SYNOPSIS
+.B bst workspace open
+[OPTIONS] ELEMENT DIRECTORY
+.SH DESCRIPTION
+Open a workspace for manual source modification
+.SH OPTIONS
+.TP
+\fB\-\-no\-checkout\fP
+Do not checkout the source, only link to the given directory
+.TP
+\fB\-f,\fP \-\-force
+Overwrite files existing in checkout directory
+.TP
+\fB\-\-track\fP
+Track and fetch new source references before checking out the workspace

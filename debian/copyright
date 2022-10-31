@@ -1,0 +1,194 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: buildstream
+Source: https://download.gnome.org/sources/BuildStream/
+
+Files: *
+Copyright: 2016-2018 Codethink Limited
+License: LGPL-2+
+
+Files: buildstream/plugins/elements/make.py
+       buildstream/plugins/sources/remote.py
+       contrib/bst-here
+       tests/sources/ostree.py
+Copyright: 2017-2018 Bloomberg Finance LP
+License: LGPL-2+
+
+Files: buildstream/plugins/elements/meson.py
+Copyright: 2017 Patrick Griffis
+           2018 Codethink Ltd.
+License: LGPL-2+
+
+Files: buildstream/plugins/elements/pip.py
+       buildstream/plugins/sources/zip.py
+Copyright: 2017 Mathieu Bridon
+License: LGPL-2+
+
+Files: buildstream/buildelement.py
+       buildstream/plugins/sources/patch.py
+       tests/sources/git.py
+Copyright: 2016-2018 Codethink Limited
+           2018 Bloomberg Finance LP
+License: LGPL-2+
+
+Files: buildstream/_frontend/app.py
+Copyright: 2016-2018, Codethink Limited
+License: LGPL-2+
+
+Files: buildstream/_frontend/complete.py
+Copyright: 2014 Armin Ronacher
+           2016 Codethink Limited
+License: LGPL-2+ and BSD-1-Clause
+
+Files: buildstream/_fuse/fuse.py
+Copyright: 2008 Giorgos Verigakis
+           2012 Terence Honles
+License: ISC
+
+Files: buildstream/_fuse/hardlinks.py
+Copyright: 2016 Stavros Korokithakis
+           2017 Codethink Limited
+License: LGPL-2+
+
+Files: buildstream/_protos/build/bazel/remote/execution/v2/remote_execution.proto
+       buildstream/_protos/build/bazel/semver/semver.proto
+Copyright: 2018 The Bazel Authors.
+License: Apache-2.0
+
+Files: buildstream/_protos/buildstream/v2/buildstream.proto
+Copyright: 2018, Codethink Limited
+License: Apache-2.0
+
+Files: buildstream/_protos/google/api/http.proto
+Copyright: 2018, Google LLC
+License: Apache-2.0
+
+Files: doc/bst2html.py
+Copyright: 2013 German M. Bravo (Kronuz)
+           2018 Codethink Limited
+License: Expat
+
+Files: doc/examples/flatpak-autotools/files/src/install-sh
+Copyright: 1994, X Consortium
+License: Expat
+
+Files: doc/examples/flatpak-autotools/files/src/src/main.c
+       tests/integration/project/files/amhello.tar.gz
+       tests/integration/project/files/cmakehello.tar.gz
+Copyright: 2006-2014 Free Software Foundation, Inc.
+License: FSFUL
+
+Files: tests/sources/deb/a_deb.deb
+Copyright: 2015-2016 Daniel Silverstone
+License: ISC
+
+Files: tests/integration/project/files/hello.tar.xz
+Copyright: Mathieu Bridon
+License: Expat
+
+Files: versioneer.py
+Copyright: Brian Warner
+License: CC0-1.0
+Comment: https://github.com/warner/python-versioneer
+
+License: Apache-2.0
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ .
+      https://www.apache.org/licenses/LICENSE-2.0
+ .
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS-IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ .
+ On Debian systems a copy of the Apache License, Version 2.0 can be
+ found in /usr/share/common-licenses/Apache-2.0
+
+License: BSD-1-Clause
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ POSSIBILITY OF SUCH DAMAGE.
+
+License: CC0-1.0
+ Certain owners wish to permanently relinquish those rights to a Work for
+ the purpose of contributing to a commons of creative, cultural and
+ scientific works ("Commons") that the public can reliably and without
+ fear of later claims of infringement build upon, modify, incorporate in
+ other works, reuse and redistribute as freely as possible in any form
+ whatsoever and for any purposes, including without limitation commercial
+ purposes. These owners may contribute to the Commons to promote the
+ ideal of a free culture and the further production of creative, cultural
+ and scientific works, or to gain reputation or greater distribution for
+ their Work in part through the use and efforts of others.
+ .
+ For these and/or other purposes and motivations, and without any
+ expectation of additional consideration or compensation, the person
+ associating CC0 with a Work (the "Affirmer"), to the extent that he or
+ she is an owner of Copyright and Related Rights in the Work, voluntarily
+ elects to apply CC0 to the Work and publicly distribute the Work under
+ its terms, with knowledge of his or her Copyright and Related Rights in
+ the Work and the meaning and intended legal effect of CC0 on those
+ rights.
+ . .
+ The complete text of the Creative Commons 0 1.0 Universal
+ can be found in `/usr/share/common-licenses/CC0-1.0'.
+
+License: Expat
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ .
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+
+License: FSFUL
+ This program is free software; the Free Software Foundation
+ gives unlimited permission to copy, distribute and modify it.
+
+License: ISC
+ Permission to use, copy, modify, and/or distribute this software for any
+ purpose with or without fee is hereby granted, provided that the above
+ copyright notice and this permission notice appear in all copies.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+ REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+ INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+ LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ PERFORMANCE OF THIS SOFTWARE.
+
+License: LGPL-2+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+ .
+ On Debian systems, the complete text of the GNU Lesser General Public
+ License version 2 can be found in "/usr/share/common-licenses/LGPL-2".

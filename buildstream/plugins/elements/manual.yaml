@@ -1,0 +1,41 @@
+# No variables added for the manual element by default, set
+# this if you plan to use make, and the sources cannot handle
+# parallelization.
+#
+# variables:
+#
+#   notparallel: True
+
+# Manual build element does not provide any default
+# build commands
+config:
+
+  # Commands for configuring the software
+  #
+  configure-commands: []
+
+  # Commands for building the software
+  #
+  build-commands: []
+
+  # Commands for installing the software into a
+  # destination folder
+  #
+  install-commands: []
+
+  # Commands for stripping installed binaries
+  #
+  strip-commands:
+  - |
+    %{strip-binaries}
+
+# Use max-jobs CPUs for building and enable verbosity
+environment:
+  MAKEFLAGS: -j%{max-jobs}
+  V: 1
+
+# And dont consider MAKEFLAGS or V as something which may
+# effect build output.
+environment-nocache:
+- MAKEFLAGS
+- V

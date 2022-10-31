@@ -1,0 +1,34 @@
+# Basic toplevel package includes
+include BuildStream.doap
+include COPYING
+include HACKING.rst
+include MAINTAINERS
+include NEWS
+include README.rst
+
+# Documentation package includes
+include doc/Makefile
+include doc/source/conf.py
+include doc/source/index.rst
+
+# Tests
+recursive-include tests *.py
+recursive-include tests *.yaml
+recursive-include tests *.bst
+recursive-include tests *.conf
+recursive-include tests *.sh
+recursive-include tests *.expected
+
+# Protocol Buffers
+recursive-include buildstream/_protos *.proto
+
+# Requirements files
+include requirements/requirements.in
+include requirements/requirements.txt
+include requirements/dev-requirements.in
+include requirements/dev-requirements.txt
+include requirements/plugin-requirements.in
+include requirements/plugin-requirements.txt
+
+# Versioneer
+include versioneer.py
