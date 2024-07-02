@@ -53,25 +53,7 @@ class SandboxBwrap(Sandbox):
         super().__init__(*args, **kwargs)
         self.user_ns_available = kwargs['user_ns_available']
         self.die_with_parent_available = kwargs['die_with_parent_available']
-        self.linux32 = False
-
-        host_os, _, _, _, host_arch = os.uname()
-        config = self._get_config()
-
-        # We can't do builds for another host or architecture except 32 bit on 64 bit
-        if config.build_os != host_os:
-            raise SandboxError("Configured and host OS don't match.")
-        elif config.build_arch != host_arch:
-            if ((config.build_arch == "i686" and host_arch == "x86_64") or
-                (config.build_arch == "armv7l" and host_arch == "aarch64")):
-                # check whether linux32 is available
-                try:
-                    utils.get_host_tool('linux32')
-                    self._linux32 = True
-                except utils.ProgramNotFoundError:
-                    raise SandboxError("Configured and host architecture don't match.")
-            else:
-                raise SandboxError("Configured and host architecture don't match.")
+        self._linux32 = kwargs['linux32']
 
     def run(self, command, flags, *, cwd=None, env=None):
         stdout, stderr = self._get_output()
@@ -104,7 +86,7 @@ class SandboxBwrap(Sandbox):
             cwd = '/'
 
         # start command with linux32 if needed
-        if self.linux32:
+        if self._linux32:
             bwrap_command = [utils.get_host_tool('linux32')]
         else:
             bwrap_command = []
@@ -157,15 +139,18 @@ class SandboxBwrap(Sandbox):
             for device in self.DEVICES:
                 bwrap_command += ['--dev-bind', device, device]
 
+        # Create a tmpfs for /dev/shm, if we're in interactive this
+        # is handled by `--dev /dev`
+        #
+        if flags & SandboxFlags.CREATE_DEV_SHM:
+            bwrap_command += ['--tmpfs', '/dev/shm']
+
         # Add bind mounts to any marked directories
         marked_directories = self._get_marked_directories()
         mount_source_overrides = self._get_mount_sources()
         for mark in marked_directories:
             mount_point = mark['directory']
-            if mount_point in mount_source_overrides:
-                mount_source = mount_source_overrides[mount_point]
-            else:
-                mount_source = mount_map.get_mount_source(mount_point)
+            mount_source = mount_source_overrides.get(mount_point, mount_map.get_mount_source(mount_point))
 
             # Use --dev-bind for all mounts, this is simply a bind mount which does
             # not restrictive about devices.
@@ -197,8 +182,8 @@ class SandboxBwrap(Sandbox):
         # there just in case so that we can safely cleanup the debris.
         #
         existing_basedirs = {
-            directory: os.path.exists(os.path.join(root_directory, directory))
-            for directory in ['tmp', 'dev', 'proc']
+            directory: os.path.lexists(os.path.join(root_directory, directory))
+            for directory in ['dev/shm', 'tmp', 'dev', 'proc']
         }
 
         # Use the MountMap context manager to ensure that any redirected
@@ -219,7 +204,7 @@ class SandboxBwrap(Sandbox):
             if flags & SandboxFlags.INTERACTIVE:
                 stdin = sys.stdin
             else:
-                stdin = stack.enter_context(open(os.devnull, "r"))
+                stdin = stack.enter_context(open(os.devnull, "r"))  # pylint: disable=unspecified-encoding
 
             # Run bubblewrap !
             exit_code = self.run_bwrap(bwrap_command, stdin, stdout, stderr,
@@ -238,7 +223,7 @@ class SandboxBwrap(Sandbox):
 
             # Remove /tmp, this is a bwrap owned thing we want to be sure
             # never ends up in an artifact
-            for basedir in ['tmp', 'dev', 'proc']:
+            for basedir in ['dev/shm', 'tmp', 'dev', 'proc']:
 
                 # Skip removal of directories which already existed before
                 # launching bwrap
@@ -344,7 +329,7 @@ class SandboxBwrap(Sandbox):
                 stack.enter_context(_signals.suspendable(suspend_bwrap, resume_bwrap))
                 stack.enter_context(_signals.terminator(terminate_bwrap))
 
-            process = subprocess.Popen(
+            process = subprocess.Popen(  # pylint: disable=consider-using-with
                 argv,
                 # The default is to share file descriptors from the parent process
                 # to the subprocess, which is rarely good for sandboxing.
@@ -423,17 +408,17 @@ class SandboxBwrap(Sandbox):
                         tries += 1
                         time.sleep(1 / 100)
                         continue
-                    else:
-                        # We've reached the upper limit of tries, bail out now
-                        # because something must have went wrong
-                        #
-                        raise
-                elif e.errno == errno.ENOENT:
+                    # We've reached the upper limit of tries, bail out now
+                    # because something must have went wrong
+                    #
+                    raise
+
+                if e.errno == errno.ENOENT:
                     # Bubblewrap cleaned it up for us, no problem if we cant remove it
                     break
-                else:
-                    # Something unexpected, reraise this error
-                    raise
+
+                # Something unexpected, reraise this error
+                raise
             else:
                 # Successfully removed the symlink
                 break

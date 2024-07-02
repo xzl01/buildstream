@@ -19,7 +19,8 @@
 
 import os
 import datetime
-from collections import deque, Mapping
+from collections import deque
+from collections.abc import Mapping
 from contextlib import contextmanager
 from . import utils
 from . import _cachekey
@@ -180,6 +181,12 @@ class Context():
             path = os.path.expandvars(path)
             path = os.path.normpath(path)
             setattr(self, directory, path)
+
+            # Relative paths don't make sense in user configuration. The exception is
+            # workspacedir where `.` is useful as it will be combined with the name
+            # specified on the command line.
+            if not os.path.isabs(path) and not (directory == 'workspacedir' and path == '.'):
+                raise LoadError("{} must be an absolute path".format(directory), LoadErrorReason.INVALID_DATA)
 
         # Load quota configuration
         # We need to find the first existing directory in the path of
@@ -386,7 +393,6 @@ class Context():
         assert self._message_handler
 
         self._message_handler(message, context=self)
-        return
 
     # silence()
     #
@@ -488,7 +494,7 @@ class Context():
         directory = os.path.dirname(self._log_filename)
         os.makedirs(directory, exist_ok=True)
 
-        with open(self._log_filename, 'a') as logfile:
+        with open(self._log_filename, 'a', encoding='utf-8') as logfile:
 
             # Write one last line to the log and flush it to disk
             def flush_log():

@@ -96,7 +96,7 @@ class SandboxChroot(Sandbox):
             if flags & SandboxFlags.INTERACTIVE:
                 stdin = sys.stdin
             else:
-                stdin = stack.enter_context(open(os.devnull, 'r'))
+                stdin = stack.enter_context(open(os.devnull, 'r'))  # pylint: disable=unspecified-encoding
 
             # Ensure the cwd exists
             if cwd is not None:
@@ -126,6 +126,8 @@ class SandboxChroot(Sandbox):
     #    (int): The exit code of the executed command
     #
     def chroot(self, rootfs, command, stdin, stdout, stderr, cwd, env, flags):
+        # pylint: disable=subprocess-popen-preexec-fn
+
         def kill_proc():
             if process:
                 # First attempt to gracefully terminate
@@ -147,7 +149,7 @@ class SandboxChroot(Sandbox):
 
         try:
             with _signals.suspendable(suspend_proc, resume_proc), _signals.terminator(kill_proc):
-                process = subprocess.Popen(
+                process = subprocess.Popen(  # pylint: disable=consider-using-with
                     command,
                     close_fds=True,
                     cwd=os.path.join(rootfs, cwd.lstrip(os.sep)),
@@ -203,8 +205,7 @@ class SandboxChroot(Sandbox):
                 raise SandboxError('Could not chroot into {} or chdir into {}. '
                                    'Ensure you are root and that the relevant directory exists.'
                                    .format(rootfs, cwd)) from e
-            else:
-                raise SandboxError('Could not run command {}: {}'.format(command, e)) from e
+            raise SandboxError('Could not run command {}: {}'.format(command, e)) from e
 
         return code
 
@@ -233,12 +234,11 @@ class SandboxChroot(Sandbox):
                         os.remove(location)
 
                     devices.append(self.mknod(device, location))
-                except OSError as err:
-                    if err.errno == 1:
-                        raise SandboxError("Permission denied while creating device node: {}.".format(err) +
-                                           "BuildStream reqiures root permissions for these setttings.")
-                    else:
-                        raise
+                except OSError as e:
+                    if e.errno == 1:
+                        raise SandboxError("Permission denied while creating device node: {}.".format(e) +
+                                           "BuildStream reqiures root permissions for these setttings.") from e
+                    raise
 
         yield
 
@@ -264,10 +264,7 @@ class SandboxChroot(Sandbox):
         @contextmanager
         def mount_point(point, **kwargs):
             mount_source_overrides = self._get_mount_sources()
-            if point in mount_source_overrides:
-                mount_source = mount_source_overrides[point]
-            else:
-                mount_source = self.mount_map.get_mount_source(point)
+            mount_source = mount_source_overrides.get(point, self.mount_map.get_mount_source(point))
             mount_point = os.path.join(rootfs, point.lstrip(os.sep))
 
             with Mounter.bind_mount(mount_point, src=mount_source, stdout=stdout, stderr=stderr, **kwargs):
@@ -327,7 +324,7 @@ class SandboxChroot(Sandbox):
             os.mknod(target, mode=stat.S_IFCHR | dev.st_mode, device=target_dev)
 
         except PermissionError as e:
-            raise SandboxError('Could not create device {}, ensure that you have root permissions: {}')
+            raise SandboxError('Could not create device {}, ensure that you have root permissions: {}') from e
 
         except OSError as e:
             raise SandboxError('Could not create device {}: {}'

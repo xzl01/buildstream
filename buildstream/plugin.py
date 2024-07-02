@@ -223,7 +223,7 @@ class Plugin():
 
         # Infer the kind identifier
         modulename = type(self).__module__
-        self.__kind = modulename.split('.')[-1]
+        self.__kind = modulename.rsplit('.', maxsplit=1)[-1]
         self.debug("Created: {}".format(self))
 
     def __del__(self):
@@ -729,7 +729,7 @@ class Plugin():
     def _output_file(self):
         log = self.__context.get_log_handle()
         if log is None:
-            with open(os.devnull, "w") as output:
+            with open(os.devnull, "w", encoding="utf-8") as output:
                 yield output
         else:
             yield log
@@ -803,8 +803,7 @@ class Plugin():
 
     def __note_command(self, output, *popenargs, **kwargs):
         workdir = os.getcwd()
-        if 'cwd' in kwargs:
-            workdir = kwargs['cwd']
+        workdir = kwargs.get('cwd', workdir)
         command = " ".join(popenargs[0])
         output.write('Running host command {}: {}\n'.format(workdir, command))
         output.flush()

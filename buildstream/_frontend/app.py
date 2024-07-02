@@ -137,7 +137,7 @@ class App():
     def create(cls, *args, **kwargs):
         if sys.platform.startswith('linux'):
             # Use an App with linux specific features
-            from .linuxapp import LinuxApp
+            from .linuxapp import LinuxApp  # pylint: disable=import-outside-toplevel
             return LinuxApp(*args, **kwargs)
         else:
             # The base App() class is default
@@ -358,7 +358,7 @@ class App():
             # us programatically insert comments or whitespace at
             # the toplevel.
             try:
-                with open(project_path, 'w') as f:
+                with open(project_path, 'w', encoding='utf-8') as f:
                     f.write("# Unique project name\n" +
                             "name: {}\n\n".format(project_name) +
                             "# Required BuildStream format version\n" +
@@ -620,7 +620,7 @@ class App():
                     except BstError as e:
                         click.echo("Error while attempting to create interactive shell: {}".format(e), err=True)
                 elif choice == 'log':
-                    with open(failure.logfile, 'r') as logfile:
+                    with open(failure.logfile, 'r', encoding='utf-8') as logfile:
                         content = logfile.read()
                         click.echo_via_pager(content)
 
@@ -874,9 +874,10 @@ def _prefix_choice_value_proc(choices):
 
         if not remaining_candidate:
             raise UsageError("Expected one of {}, got {}".format(choices, user_input))
-        elif len(remaining_candidate) == 1:
+
+        if len(remaining_candidate) == 1:
             return remaining_candidate[0]
-        else:
-            raise UsageError("Ambiguous input. '{}' can refer to one of {}".format(user_input, remaining_candidate))
+
+        raise UsageError("Ambiguous input. '{}' can refer to one of {}".format(user_input, remaining_candidate))
 
     return value_proc

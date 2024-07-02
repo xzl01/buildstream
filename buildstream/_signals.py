@@ -70,14 +70,12 @@ def terminator_handler(signal_, frame):
 #
 @contextmanager
 def terminator(terminate_func):
-    global terminator_stack                   # pylint: disable=global-statement
-
     # Signal handling only works in the main thread
     if threading.current_thread() != threading.main_thread():
         yield
         return
 
-    outermost = False if terminator_stack else True
+    outermost = not terminator_stack
 
     terminator_stack.append(terminate_func)
     if outermost:
@@ -135,9 +133,7 @@ def suspend_handler(sig, frame):
 #
 @contextmanager
 def suspendable(suspend_callback, resume_callback):
-    global suspendable_stack                  # pylint: disable=global-statement
-
-    outermost = False if suspendable_stack else True
+    outermost = not suspendable_stack
     suspender = Suspender(suspend_callback, resume_callback)
     suspendable_stack.append(suspender)
 

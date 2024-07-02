@@ -72,9 +72,9 @@ class _Attempt():
             if e.code() == grpc.StatusCode.UNAVAILABLE:
                 return not self.__last_attempt
             elif e.code() == grpc.StatusCode.ABORTED:
-                raise CASRemoteError("grpc aborted: {}".format(str(e)),
-                                     detail=e.details(),
-                                     temporary=True) from e
+                raise CASError("grpc aborted: {}".format(str(e)),
+                               detail=e.details(),
+                               temporary=True) from e
             else:
                 return False
         return False
@@ -288,8 +288,7 @@ class CASCache():
         except grpc.RpcError as e:
             if e.code() != grpc.StatusCode.NOT_FOUND:
                 raise CASError("Failed to pull ref {}: {}".format(ref, e)) from e
-            else:
-                return False
+            return False
 
     # link_ref():
     #
@@ -443,7 +442,7 @@ class CASCache():
                 os.makedirs(os.path.dirname(objpath), exist_ok=True)
                 os.link(tmp.name, objpath)
 
-        except FileExistsError as e:
+        except FileExistsError:
             # We can ignore the failed link() if the object is already in the repo.
             pass
 
@@ -992,7 +991,7 @@ class CASCache():
     def _send_directory(self, remote, digest, u_uid=uuid.uuid4()):
         required_blobs = self._required_blobs(digest)
 
-        missing_blobs = dict()
+        missing_blobs = {}
         # Limit size of FindMissingBlobs request
         for required_blobs_group in _grouper(required_blobs, 512):
             request = remote_execution_pb2.FindMissingBlobsRequest()
@@ -1040,6 +1039,8 @@ class CASCache():
 # Represents a single remote CAS cache.
 #
 class CASRemote():
+    # pylint: disable=attribute-defined-outside-init
+
     def __init__(self, spec):
         self.spec = spec
         self._initialized = False
@@ -1117,19 +1118,6 @@ class CASRemote():
                 if e.code() != grpc.StatusCode.UNIMPLEMENTED:
                     raise
 
-            # Check whether the server supports BatchUpdateBlobs()
-            self.batch_update_supported = False
-            try:
-                request = remote_execution_pb2.BatchUpdateBlobsRequest()
-                for attempt in _retry():
-                    with attempt:
-                        response = self.cas.BatchUpdateBlobs(request)
-                self.batch_update_supported = True
-            except grpc.RpcError as e:
-                if (e.code() != grpc.StatusCode.UNIMPLEMENTED and
-                        e.code() != grpc.StatusCode.PERMISSION_DENIED):
-                    raise
-
             self.asset_fetch_supported = False
             try:
                 request = remote_asset_pb2.FetchDirectoryRequest()
@@ -1143,18 +1131,35 @@ class CASRemote():
                 elif e.code() != grpc.StatusCode.UNIMPLEMENTED:
                     raise
 
+            self.batch_update_supported = False
             self.asset_push_supported = False
-            try:
-                request = remote_asset_pb2.PushDirectoryRequest()
-                for attempt in _retry():
-                    with attempt:
-                        response = self.remote_asset_push.PushDirectory(request)
-            except grpc.RpcError as e:
-                if e.code() == grpc.StatusCode.INVALID_ARGUMENT:
-                    # Expected error as the request doesn't specify any URIs.
-                    self.asset_push_supported = True
-                elif e.code() != grpc.StatusCode.UNIMPLEMENTED:
-                    raise
+
+            if self.spec.push:
+                # Check whether the server supports BatchUpdateBlobs()
+                try:
+                    request = remote_execution_pb2.BatchUpdateBlobsRequest()
+                    for attempt in _retry():
+                        with attempt:
+                            response = self.cas.BatchUpdateBlobs(request)
+                    self.batch_update_supported = True
+                except grpc.RpcError as e:
+                    if (e.code() != grpc.StatusCode.UNIMPLEMENTED and
+                        e.code() != grpc.StatusCode.PERMISSION_DENIED):
+                        raise
+
+                # Check whether the server supports PushDirectory()
+                try:
+                    request = remote_asset_pb2.PushDirectoryRequest()
+                    for attempt in _retry():
+                        with attempt:
+                            response = self.remote_asset_push.PushDirectory(request)
+                except grpc.RpcError as e:
+                    if e.code() == grpc.StatusCode.INVALID_ARGUMENT:
+                        # Expected error as the request doesn't specify any URIs.
+                        self.asset_push_supported = True
+                    elif (e.code() != grpc.StatusCode.UNIMPLEMENTED and
+                        e.code() != grpc.StatusCode.PERMISSION_DENIED):
+                        raise
 
             self._initialized = True
 

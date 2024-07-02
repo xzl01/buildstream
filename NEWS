@@ -1,4 +1,101 @@
 =================
+buildstream 1.6.8
+=================
+
+  o Only test remote CAS push capabilities if push is enabled.
+  This improves compatibility with new grpcio releases.
+  o Dummy sandbox for checking out from dirrefernt arches.
+  Ability to check out build artifacts with incompatible arch
+  assuming no commands need to be run.
+  o Backport regex flags fix to support newer versions of Python
+
+=================
+buildstream 1.6.7
+=================
+
+  o Some documentation updates
+
+  o Support newer versions of ruamel.yam (issue #1623)
+
+=================
+buildstream 1.6.6
+=================
+
+  o BuildStream git tests have always assumed default git branch is master.
+  This is now explicit with test helpers
+
+  o project.refs of subprojects are properly taken into account
+
+  o ostree regressed as part of migrating to command-line that it left
+  whitespace into ref when tracking. Any whitespace around ref is now removed.
+
+  o pb2 files are regenerated with protobuf 3.20.1 to mitigate forward
+  compatibility issues. This has the implication that protobuf 3.19.0 or higher
+  is now required.
+
+=================
+buildstream 1.6.5
+=================
+
+  o Make it easier to override parameters to `make` in the `make` element
+
+  o ostree: Remove `--mirror` parameter which has been causing some issues
+
+  o Fix test suite to work on some CI runners which hang while resolving localhost
+    when trying to open a port for the CAS server
+
+=================
+buildstream 1.6.4
+=================
+
+  o BuildElement classes now support `create-dev-shm`
+
+  o script element plugin now supports `create-dev-shm`
+
+  o Python 3.6 is no longer tested in CI but support is maintained on
+    best effort level.
+
+  o New fatal warnings for unaliased sources
+
+  o New errors raised when using an unresolved source alias
+
+  o Add support for .netrc in remote/tar/zip sources
+
+  o Bugfixes and better stability in fuse layer
+
+  o Drop CI support for EOL python 3.6 (although BuildStream
+    should still work when installed in python 3.6 environments)
+
+  o Various bug fixes, documentation updates and CI related cleanup
+
+=================
+buildstream 1.6.3
+=================
+
+  o Support for python 3.9 now being tested in CI
+
+  o CI overhaul to work more like it does in master
+
+  o Refresh all dependencies which are being tested in CI, addressing
+    a corner case crash that would occur when using bash completions
+    and bleeding edge versions of the click library
+
+  o Updated minimum required version of grpcio library to 1.30, as older
+    versions are not working properly with existing artifact cache services.
+
+=================
+buildstream 1.6.2
+=================
+
+  o Fix some issues with a previous fix for #532
+
+  o Ported to github CI infrastructure
+
+  o Ensure paths specified in user configuration are absolute
+
+  o Import some symbols from collections.abc, required for python 3.10
+
+=================
 buildstream 1.6.1
 =================
 

@@ -147,11 +147,12 @@ Class Reference
 """
 
 import os
-from collections import Mapping
+from collections.abc import Mapping
 from contextlib import contextmanager
 
 from . import Plugin
 from . import _yaml, utils
+from .types import CoreWarnings
 from ._exceptions import BstError, ImplError, ErrorDomain
 from ._projectrefs import ProjectRefStorage
 
@@ -507,7 +508,6 @@ class Source(Plugin):
 
         *Since: 1.4*
         """
-        pass
 
     #############################################################
     #                       Public Methods                      #
@@ -613,6 +613,25 @@ class Source(Plugin):
             #
             assert (url in self.__marked_urls or not _extract_alias(url)), \
                 "URL was not seen at configure time: {}".format(url)
+
+        alias = _extract_alias(url)
+
+        # Issue a (fatal-able) warning if the source used a URL without specifying an alias
+        if not alias:
+            self.warn(
+                "{}: Use of unaliased source download URL: {}".format(self, url),
+                warning_token=CoreWarnings.UNALIASED_URL,
+            )
+
+        # If there is an alias in use, ensure that it exists in the project
+        if alias:
+            project = self._get_project()
+            alias_uri = project.get_alias_uri(alias, first_pass=self.__first_pass)
+            if alias_uri is None:
+                raise SourceError(
+                    "{}: Invalid alias '{}' specified in URL: {}".format(self, alias, url),
+                    reason="invalid-source-alias",
+                )
 
     def get_project_directory(self):
         """Fetch the project base directory
@@ -780,13 +799,14 @@ class Source(Plugin):
             ref_node = refs.lookup_ref(project.name, element_name, element_idx)
             if ref_node is not None:
                 do_load_ref(ref_node)
+                return redundant_ref
 
         # If the project itself uses project.refs, clear the ref which
         # was already loaded via Source.configure(), as this would
         # violate the rule of refs being either in project.refs or in
         # the elements themselves.
         #
-        elif project.ref_storage == ProjectRefStorage.PROJECT_REFS:
+        if project.ref_storage == ProjectRefStorage.PROJECT_REFS:
 
             # First warn if there is a ref already loaded, and reset it
             redundant_ref = self.get_ref()
@@ -1003,7 +1023,7 @@ class Source(Plugin):
                     success = True
                     break
                 if not success:
-                    raise last_error
+                    raise last_error  # pylint: disable=used-before-assignment
         else:
             alias = self._get_alias()
             if self.__first_pass:
@@ -1014,8 +1034,6 @@ class Source(Plugin):
                 self.fetch(**kwargs)
                 return
 
-            context = self._get_context()
-            source_kind = type(self)
             for uri in project.get_alias_uris(alias, first_pass=self.__first_pass):
                 new_source = self.__clone_for_uri(uri)
                 try:
@@ -1045,14 +1063,14 @@ class Source(Plugin):
         for uri in reversed(project.get_alias_uris(alias, first_pass=self.__first_pass)):
             new_source = self.__clone_for_uri(uri)
             try:
-                ref = new_source.track(**kwargs)
+                ref = new_source.track(**kwargs)  # pylint: disable=assignment-from-none
             # FIXME: Need to consider temporary vs. permanent failures,
             #        and how this works with retries.
             except BstError as e:
                 last_error = e
                 continue
             return ref
-        raise last_error
+        raise last_error  # pylint: disable=used-before-assignment
 
     # Ensures a fully constructed path and returns it
     def __ensure_directory(self, directory):

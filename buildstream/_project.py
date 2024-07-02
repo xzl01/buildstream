@@ -19,12 +19,14 @@
 #        Tiago Gomes <tiago.gomes@codethink.co.uk>
 
 import os
-from collections import Mapping, OrderedDict
+from collections import OrderedDict
+from collections.abc import Mapping
 from pluginbase import PluginBase
 from . import utils
 from . import _cachekey
 from . import _site
 from . import _yaml
+from .utils import UtilError
 from ._profile import Topics, profile_start, profile_end
 from ._exceptions import LoadError, LoadErrorReason
 from ._options import OptionPool
@@ -384,8 +386,7 @@ class Project():
             # Raise a more specific error here
             if e.reason == LoadErrorReason.MISSING_FILE:
                 raise LoadError(LoadErrorReason.MISSING_PROJECT_CONF, str(e)) from e
-            else:
-                raise
+            raise
 
         pre_config_node = _yaml.node_copy(self._default_config_node)
         _yaml.composite(pre_config_node, self._project_conf)

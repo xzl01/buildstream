@@ -20,6 +20,7 @@
 import sys
 import collections
 import string
+from io import StringIO
 from copy import deepcopy
 from contextlib import ExitStack
 from pathlib import Path
@@ -29,9 +30,30 @@ from ruamel.yaml.representer import SafeRepresenter, RoundTripRepresenter
 from ruamel.yaml.constructor import RoundTripConstructor
 from ._exceptions import LoadError, LoadErrorReason
 
+
+# SanitizedDict is an OrderedDict that is dumped as unordered mapping.
+# This provides deterministic output for unordered mappings.
+#
+class SanitizedDict(collections.OrderedDict):
+    pass
+
+
 # This overrides the ruamel constructor to treat everything as a string
-RoundTripConstructor.add_constructor(u'tag:yaml.org,2002:int', RoundTripConstructor.construct_yaml_str)
-RoundTripConstructor.add_constructor(u'tag:yaml.org,2002:float', RoundTripConstructor.construct_yaml_str)
+RoundTripConstructor.add_constructor('tag:yaml.org,2002:int', RoundTripConstructor.construct_yaml_str)
+RoundTripConstructor.add_constructor('tag:yaml.org,2002:float', RoundTripConstructor.construct_yaml_str)
+RoundTripConstructor.add_constructor('tag:yaml.org,2002:null', RoundTripConstructor.construct_yaml_str)
+
+
+# Represent simple types as strings
+def represent_as_str(self, value):
+    return self.represent_str(str(value))
+
+
+RoundTripRepresenter.add_representer(SanitizedDict, SafeRepresenter.represent_dict)
+RoundTripRepresenter.add_representer(type(None), represent_as_str)
+RoundTripRepresenter.add_representer(int, represent_as_str)
+RoundTripRepresenter.add_representer(float, represent_as_str)
+
 
 # We store information in the loaded yaml on a DictProvenance
 # stored in all dictionaries under this key
@@ -96,7 +118,7 @@ class DictProvenance(Provenance):
                 line = 1
                 col = 0
 
-        super(DictProvenance, self).__init__(filename, node, toplevel, line=line, col=col)
+        super().__init__(filename, node, toplevel, line=line, col=col)
 
         self.members = {}
 
@@ -122,8 +144,7 @@ class MemberProvenance(Provenance):
             line, col = parent_dict.lc.value(member_name)
             line += 1
 
-        super(MemberProvenance, self).__init__(
-            filename, node, toplevel, line=line, col=col)
+        super().__init__(filename, node, toplevel, line=line, col=col)
 
         # Only used if member is a list
         self.elements = []
@@ -146,8 +167,7 @@ class ElementProvenance(Provenance):
             line, col = parent_list.lc.item(index)
             line += 1
 
-        super(ElementProvenance, self).__init__(
-            filename, node, toplevel, line=line, col=col)
+        super().__init__(filename, node, toplevel, line=line, col=col)
 
         # Only used if element is a list
         self.elements = []
@@ -165,13 +185,13 @@ class ElementProvenance(Provenance):
 # public exceptions.py
 class CompositeError(Exception):
     def __init__(self, path, message):
-        super(CompositeError, self).__init__(message)
+        super().__init__(message)
         self.path = path
 
 
 class CompositeTypeError(CompositeError):
     def __init__(self, path, expected_type, actual_type):
-        super(CompositeTypeError, self).__init__(
+        super().__init__(
             path,
             "Error compositing dictionary key '{}', expected source type '{}' "
             "but received type '{}'"
@@ -199,7 +219,7 @@ def load(filename, shortname=None, copy_tree=False, *, project=None):
     file = ProvenanceFile(filename, shortname, project)
 
     try:
-        with open(filename) as f:
+        with open(filename, encoding="utf-8") as f:
             return load_data(f, file, copy_tree=copy_tree)
     except FileNotFoundError as e:
         raise LoadError(LoadErrorReason.MISSING_FILE,
@@ -209,13 +229,37 @@ def load(filename, shortname=None, copy_tree=False, *, project=None):
                         "{} is a directory. bst command expects a .bst file."
                         .format(filename)) from e
 
+# A function to get the roundtrip yaml handle
+#
+# Args:
+#    write (bool): Whether we intend to write
+#
+def prepare_roundtrip_yaml(write=False):
+    yml = yaml.YAML()
+    yml.preserve_quotes=True
+
+    # For each of YAML 1.1 and 1.2, force everything to be a plain string
+
+    for version in [(1, 1), (1, 2), None]:
+        yml.resolver.add_version_implicit_resolver(
+            version,
+            'tag:yaml.org,2002:str',
+            yaml.util.RegExp(r'.*'),
+            None)
+
+    # When writing, we want to represent boolean as strings
+    if write:
+        yml.representer.add_representer(bool, represent_as_str)
+
+    return yml
 
 # Like load(), but doesnt require the data to be in a file
 #
 def load_data(data, file=None, copy_tree=False):
 
+    yml = prepare_roundtrip_yaml()
     try:
-        contents = yaml.load(data, yaml.loader.RoundTripLoader, preserve_quotes=True)
+        contents = yml.load(data)
     except (yaml.scanner.ScannerError, yaml.composer.ComposerError, yaml.parser.ParserError) as e:
         raise LoadError(LoadErrorReason.INVALID_YAML,
                         "Malformed YAML:\n\n{}\n\n{}\n".format(e.problem, e.problem_mark)) from e
@@ -232,6 +276,27 @@ def load_data(data, file=None, copy_tree=False):
     return node_decorated_copy(file, contents, copy_tree=copy_tree)
 
 
+# Dumps a previously loaded YAML node to a file handle
+#
+def dump_file_handle(node, fh):
+    yml = prepare_roundtrip_yaml(write=True)
+    yml.dump(node, fh)
+
+
+# Dumps a previously loaded YAML node to a file
+#
+# Args:
+#    node (dict): A node previously loaded with _yaml.load() above
+#
+# Returns:
+#    (str): The generated string
+#
+def dump_string(node):
+    with StringIO() as f:
+        dump_file_handle(node, f)
+        return f.getvalue()
+
+
 # Dumps a previously loaded YAML node to a file
 #
 # Args:
@@ -241,11 +306,11 @@ def load_data(data, file=None, copy_tree=False):
 def dump(node, filename=None):
     with ExitStack() as stack:
         if filename:
-            from . import utils
+            from . import utils  # pylint: disable=import-outside-toplevel
             f = stack.enter_context(utils.save_file_atomic(filename, 'w'))
         else:
             f = sys.stdout
-        yaml.round_trip_dump(node, f)
+        dump_file_handle(node, f)
 
 
 # node_decorated_copy()
@@ -336,7 +401,7 @@ def node_get_provenance(node, key=None, indices=None):
 # values.
 #
 def _get_sentinel():
-    from .utils import _sentinel
+    from .utils import _sentinel   # pylint: disable=import-outside-toplevel
     return _sentinel
 
 
@@ -387,9 +452,9 @@ def node_get(node, expected_type, key, indices=None, default_value=_get_sentinel
         try:
             if (expected_type == bool and isinstance(value, str)):
                 # Dont coerce booleans to string, this makes "False" strings evaluate to True
-                if value == 'true' or value == 'True':
+                if value in ('true', 'True'):
                     value = True
-                elif value == 'false' or value == 'False':
+                elif value in ('false', 'False'):
                     value = False
                 else:
                     raise ValueError()
@@ -399,11 +464,11 @@ def node_get(node, expected_type, key, indices=None, default_value=_get_sentinel
                 value = expected_type(value)
             else:
                 raise ValueError()
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
             provenance = node_get_provenance(node, key=key, indices=indices)
             raise LoadError(LoadErrorReason.INVALID_DATA,
                             "{}: Value of '{}' is not of the expected type '{}'"
-                            .format(provenance, path, expected_type.__name__))
+                            .format(provenance, path, expected_type.__name__)) from e
 
     # Trim it at the bud, let all loaded strings from yaml be stripped of whitespace
     if isinstance(value, str):
@@ -466,10 +531,10 @@ def node_get_project_path(node, key, project_dir, *,
             full_resolved_path = (project_dir_path / path).resolve()
         else:
             full_resolved_path = (project_dir_path / path).resolve(strict=True)
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         raise LoadError(LoadErrorReason.MISSING_FILE,
                         "{}: Specified path '{}' does not exist"
-                        .format(provenance, path_str))
+                        .format(provenance, path_str)) from e
 
     is_inside = project_dir_path.resolve() in full_resolved_path.parents or (
         full_resolved_path == project_dir_path)
@@ -905,17 +970,6 @@ def composite(target, source):
                                 e.expected_type.__name__,
                                 e.path,
                                 e.actual_type.__name__)) from e
-
-
-# SanitizedDict is an OrderedDict that is dumped as unordered mapping.
-# This provides deterministic output for unordered mappings.
-#
-class SanitizedDict(collections.OrderedDict):
-    pass
-
-
-RoundTripRepresenter.add_representer(SanitizedDict,
-                                     SafeRepresenter.represent_dict)
 
 
 # node_sanitize()

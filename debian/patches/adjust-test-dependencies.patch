@@ -1,24 +1,23 @@
-From: Jeremy Bicha <jbicha@ubuntu.com>
+From: Jeremy Bicha <jeremy.bicha@canonical.com>
 Date: Sat, 28 Sep 2019 18:03:10 -0400
 Subject: adjust test dependencies
 
-These packages aren't in Debian yet
 ---
  requirements/dev-requirements.in | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/requirements/dev-requirements.in b/requirements/dev-requirements.in
-index cbfa0c0..708fc4d 100644
+index 6043a54..6244dfe 100644
 --- a/requirements/dev-requirements.in
 +++ b/requirements/dev-requirements.in
 @@ -1,8 +1,8 @@
  pep8
- pylint
+ pylint >= 2.10.0
  pytest >= 3.7
 -pytest-datafiles
 -pytest-env
-+# pytest-datafiles
-+# pytest-env
- pytest-pep8
- pytest-pylint
++#pytest-datafiles
++#pytest-env
  pytest-xdist
+ pytest-timeout
+ pyftpdlib

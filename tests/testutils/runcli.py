@@ -7,7 +7,6 @@ import itertools
 import traceback
 import subprocess
 from contextlib import contextmanager, ExitStack
-from ruamel import yaml
 import pytest
 
 # XXX Using pytest private internals here
@@ -305,8 +304,7 @@ class Cli():
         old_stdin = sys.stdin
         with open(os.devnull) as devnull:
             sys.stdin = devnull
-
-            capture = MultiCapture(out=True, err=True, in_=False, Capture=FDCapture)
+            capture = MultiCapture(out=FDCapture(1), err=FDCapture(2), in_=None)
             capture.start_capturing()
 
             try:
@@ -399,7 +397,8 @@ class Cli():
         ])
 
         result.assert_success()
-        return yaml.safe_load(result.output)
+        yml = _yaml.prepare_roundtrip_yaml()
+        return yml.load(result.output)
 
     # Fetch the elements that would be in the pipeline with the given
     # arguments.
@@ -464,10 +463,8 @@ class CliIntegration(Cli):
             # dictionaries need to be loaded via _yaml.load_data() first
             #
             with tempfile.TemporaryDirectory(dir=project_directory) as scratchdir:
-
                 temp_project = os.path.join(scratchdir, 'project.conf')
-                with open(temp_project, 'w') as f:
-                    yaml.safe_dump(project_config, f)
+                _yaml.dump(project_config, temp_project)
 
                 project_config = _yaml.load(temp_project)
 
@@ -515,8 +512,8 @@ def cli_integration(tmpdir, integration_cache):
     # We want to cache sources for integration tests more permanently,
     # to avoid downloading the huge base-sdk repeatedly
     fixture.configure({
-        'sourcedir': os.path.join(integration_cache, 'sources'),
-        'artifactdir': os.path.join(integration_cache, 'artifacts')
+        'sourcedir': integration_cache.sources,
+        'artifactdir': integration_cache.artifacts
     })
 
     return fixture
@@ -536,13 +533,16 @@ def environment(env):
     old_env = {}
     for key, value in env.items():
         old_env[key] = os.environ.get(key)
-        os.environ[key] = value
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
 
     yield
 
     for key, value in old_env.items():
         if value is None:
-            del os.environ[key]
+            os.environ.pop(key, None)
         else:
             os.environ[key] = value
 

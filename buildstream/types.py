@@ -112,29 +112,10 @@ class CoreWarnings():
     characters in its name.
     """
 
-
-class CoreWarnings():
-    """CoreWarnings()
-
-    Some common warnings which are raised by core functionalities within BuildStream are found in this class.
+    UNALIASED_URL = "unaliased-url"
     """
-
-    OVERLAPS = "overlaps"
-    """
-    This warning will be produced when buildstream detects an overlap on an element
-        which is not whitelisted. See :ref:`Overlap Whitelist <public_overlap_whitelist>`
-    """
-
-    REF_NOT_IN_TRACK = "ref-not-in-track"
-    """
-    This warning will be produced when a source is configured with a reference
-    which is found to be invalid based on the configured track
-    """
-
-    BAD_ELEMENT_SUFFIX = "bad-element-suffix"
-    """
-    This warning will be produced when an element whose name does not end in .bst
-    is referenced either on the command line or by another element
+    A URL used for fetching a sources was specified without specifying any
+    :ref:`alias <project_source_aliases>`
     """
 
 

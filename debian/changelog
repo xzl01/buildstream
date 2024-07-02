@@ -1,3 +1,19 @@
+buildstream (1.6.8-2) unstable; urgency=high
+
+  * Cherry-pick commits to support Python 3.11 (Closes: #1030143)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 01 Feb 2023 06:43:46 -0500
+
+buildstream (1.6.8-1) unstable; urgency=medium
+
+  * New upstream release
+  * Refresh patch
+  * Update upstream URL for debian/watch and debian/copyright
+  * Add debian/upstream/metadata
+  * Bump Standards-Version to 4.6.1
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 05 Dec 2022 16:05:02 -0500
+
 buildstream (1.6.1-1) unstable; urgency=medium
 
   * New upstream release

@@ -1,0 +1,58 @@
+From: Seppo Yli-Olli <seppo.yliolli@gmail.com>
+Date: Sun, 11 Dec 2022 16:23:52 +0200
+Subject: Attempt at backporting regexp fixes
+
+See 782555a674de2ab6f1760f13c4a1b17400f64533
+
+(cherry picked from commit 9e067ec3e854a8b1c1904446597db92a3f8d1dab)
+---
+ buildstream/element.py | 6 ++++--
+ buildstream/utils.py   | 4 ++--
+ 2 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/buildstream/element.py b/buildstream/element.py
+index a83fe23..2c38c8f 100644
+--- a/buildstream/element.py
++++ b/buildstream/element.py
+@@ -2311,7 +2311,9 @@ class Element(Plugin):
+         bstdata = self.get_public_data('bst')
+         splits = bstdata.get('split-rules')
+         self.__splits = {
+-            domain: re.compile('^(?:' + '|'.join([utils._glob2re(r) for r in rules]) + ')$')
++            domain: re.compile(
++                "^(?:" + "|".join([utils._glob2re(r) for r in rules]) + ")$", re.MULTILINE | re.DOTALL
++            )
+             for domain, rules in self.node_items(splits)
+         }
+ 
+@@ -2386,7 +2388,7 @@ class Element(Plugin):
+                 for index, exp in enumerate(whitelist)
+             ]
+             expression = ('^(?:' + '|'.join(whitelist_expressions) + ')$')
+-            self.__whitelist_regex = re.compile(expression)
++            self.__whitelist_regex = re.compile(expression, re.MULTILINE | re.DOTALL)
+         return self.__whitelist_regex.match(path) or self.__whitelist_regex.match(os.path.join(os.sep, path))
+ 
+     # __extract():
+diff --git a/buildstream/utils.py b/buildstream/utils.py
+index b26d1f9..9f22e63 100644
+--- a/buildstream/utils.py
++++ b/buildstream/utils.py
+@@ -200,7 +200,7 @@ def glob(paths, pattern):
+         pattern = os.sep + pattern
+ 
+     expression = _glob2re(pattern)
+-    regexer = re.compile(expression)
++    regexer = re.compile(expression, re.MULTILINE | re.DOTALL)
+ 
+     for filename in paths:
+         filename_try = filename
+@@ -1138,7 +1138,7 @@ def _call(*popenargs, terminate=False, **kwargs):
+ #
+ def _glob2re(pat):
+     i, n = 0, len(pat)
+-    res = '(?ms)'
++    res = ''
+     while i < n:
+         c = pat[i]
+         i = i + 1

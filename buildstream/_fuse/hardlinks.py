@@ -66,26 +66,30 @@ class SafeHardlinkOps(Operations):
         path = os.path.join(self.root, partial)
         return path
 
-    def _ensure_copy(self, full_path):
+    def _ensure_copy(self, full_path, follow_symlinks=True):
         try:
-            # Follow symbolic links manually here
-            real_path = os.path.realpath(full_path)
-            file_stat = os.stat(real_path)
+            if follow_symlinks:
+                # Follow symbolic links manually here
+                real_path = os.path.realpath(full_path)
+            else:
+                real_path = full_path
 
-            # Dont bother with files that cannot be hardlinked, oddly it
-            # directories actually usually have st_nlink > 1 so just avoid
-            # that.
+            file_stat = os.stat(real_path, follow_symlinks=False)
+
+            # Skip the file if it's not a hardlink
+            if file_stat.st_nlink <= 1:
+                return
+
+            # For some reason directories may have st_nlink > 1, but they
+            # cannot be hardlinked, so just ignore those.
             #
-            # We already wont get symlinks here, and stat will throw
-            # the FileNotFoundError below if a followed symlink did not exist.
-            #
-            if not stat.S_ISDIR(file_stat.st_mode) and file_stat.st_nlink > 1:
+            if not stat.S_ISDIR(file_stat.st_mode):
                 with tempfile.TemporaryDirectory(dir=self.tmp) as tempdir:
                     basename = os.path.basename(real_path)
                     temp_path = os.path.join(tempdir, basename)
 
                     # First copy, then unlink origin and rename
-                    shutil.copy2(real_path, temp_path)
+                    shutil.copy2(real_path, temp_path, follow_symlinks=False)
                     os.unlink(real_path)
                     os.rename(temp_path, real_path)
 
@@ -97,9 +101,9 @@ class SafeHardlinkOps(Operations):
     ###########################################################
     #                     Fuse Methods                        #
     ###########################################################
-    def access(self, path, mode):
+    def access(self, path, amode):
         full_path = self._full_path(path)
-        if not os.access(full_path, mode):
+        if not os.access(full_path, amode):
             raise FuseOSError(errno.EACCES)
 
     def chmod(self, path, mode):
@@ -113,24 +117,31 @@ class SafeHardlinkOps(Operations):
         full_path = self._full_path(path)
 
         # Ensure copies on chown
-        self._ensure_copy(full_path)
-        return os.chown(full_path, uid, gid)
+        self._ensure_copy(full_path, follow_symlinks=False)
+        return os.chown(full_path, uid, gid, follow_symlinks=False)
 
     def getattr(self, path, fh=None):
         full_path = self._full_path(path)
         st = os.lstat(full_path)
         return dict((key, getattr(st, key)) for key in (
             'st_atime', 'st_ctime', 'st_gid', 'st_mode',
-            'st_mtime', 'st_nlink', 'st_size', 'st_uid'))
+            'st_mtime', 'st_nlink', 'st_size', 'st_uid',
+            'st_ino'))
 
     def readdir(self, path, fh):
         full_path = self._full_path(path)
 
-        dirents = ['.', '..']
+        dir_entries = ['.', '..']
         if os.path.isdir(full_path):
-            dirents.extend(os.listdir(full_path))
-        for r in dirents:
-            yield r
+            dir_entries.extend(os.listdir(full_path))
+        for entry in dir_entries:
+            entry_full_path = os.path.join(full_path, entry)
+            st = os.stat(entry_full_path, follow_symlinks=False)
+
+            attrs = dict((key, getattr(st, key)) for key in (
+                'st_ino', 'st_mode'))
+
+            yield entry, attrs, 0
 
     def readlink(self, path):
         pathname = os.readlink(self._full_path(path))
@@ -160,18 +171,18 @@ class SafeHardlinkOps(Operations):
     def unlink(self, path):
         return os.unlink(self._full_path(path))
 
-    def symlink(self, name, target):
-        return os.symlink(target, self._full_path(name))
+    def symlink(self, target, source):
+        return os.symlink(source, self._full_path(target))
 
     def rename(self, old, new):
         return os.rename(self._full_path(old), self._full_path(new))
 
-    def link(self, target, name):
+    def link(self, target, source):
 
         # When creating a hard link here, should we ensure the original
         # file is not a hardlink itself first ?
         #
-        return os.link(self._full_path(name), self._full_path(target))
+        return os.link(self._full_path(source), self._full_path(target))
 
     def utimens(self, path, times=None):
         return os.utime(self._full_path(path), times)
@@ -185,24 +196,24 @@ class SafeHardlinkOps(Operations):
 
         return os.open(full_path, flags)
 
-    def create(self, path, mode, flags):
+    def create(self, path, mode, fi=None):
         full_path = self._full_path(path)
 
         # If it already exists, ensure it's a copy first
         self._ensure_copy(full_path)
-        return os.open(full_path, flags, mode)
+        return os.open(full_path, fi, mode)
 
-    def read(self, path, length, offset, fh):
+    def read(self, path, size, offset, fh):
         os.lseek(fh, offset, os.SEEK_SET)
-        return os.read(fh, length)
+        return os.read(fh, size)
 
-    def write(self, path, buf, offset, fh):
+    def write(self, path, data, offset, fh):
         os.lseek(fh, offset, os.SEEK_SET)
-        return os.write(fh, buf)
+        return os.write(fh, data)
 
     def truncate(self, path, length, fh=None):
         full_path = self._full_path(path)
-        with open(full_path, 'r+') as f:
+        with open(full_path, 'r+', encoding='utf-8') as f:
             f.truncate(length)
 
     def flush(self, path, fh):
@@ -211,5 +222,5 @@ class SafeHardlinkOps(Operations):
     def release(self, path, fh):
         return os.close(fh)
 
-    def fsync(self, path, fdatasync, fh):
+    def fsync(self, path, datasync, fh):
         return self.flush(path, fh)

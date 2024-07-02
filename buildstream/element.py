@@ -76,7 +76,8 @@ import os
 import re
 import stat
 import copy
-from collections import Mapping, OrderedDict
+from collections import OrderedDict
+from collections.abc import Mapping
 from contextlib import contextmanager
 from enum import Enum
 import tempfile
@@ -325,7 +326,6 @@ class Element(Plugin):
 
         *Since: 1.2*
         """
-        pass
 
     def assemble(self, sandbox):
         """Assemble the output artifact
@@ -687,7 +687,6 @@ class Element(Plugin):
         files_written = {}
         old_dep_keys = {}
         workspace = self._get_workspace()
-        project = self._get_project()
         context = self._get_context()
 
         if self.__can_build_incrementally() and workspace.last_successful:
@@ -1552,9 +1551,9 @@ class Element(Plugin):
                                                     self.__staged_sources_directory.lstrip(os.sep))
                         try:
                             utils.copy_files(workspace.get_absolute_path(), sandbox_path)
-                        except UtilError as e:
+                        except UtilError as err:
                             self.warn("Failed to preserve workspace state for failed build sysroot: {}"
-                                      .format(e))
+                                      .format(err))
 
                     raise
 
@@ -1605,7 +1604,7 @@ class Element(Plugin):
 
                 # Store workspaced.yaml
                 _yaml.dump(_yaml.node_sanitize({
-                    'workspaced': True if self._get_workspace() else False
+                    'workspaced': bool(self._get_workspace())
                 }), os.path.join(metadir, 'workspaced.yaml'))
 
                 # Store workspaced-dependencies.yaml
@@ -1820,7 +1819,7 @@ class Element(Plugin):
                         sandbox._set_mount_source(mount.path, mount.host_path)
 
             if command:
-                argv = [arg for arg in command]
+                argv = list(command)
             else:
                 argv = shell_command
 
@@ -1871,7 +1870,7 @@ class Element(Plugin):
     #
     # Writes a script to the given directory.
     def _write_script(self, directory):
-        with open(_site.build_module_template, "r") as f:
+        with open(_site.build_module_template, "r", encoding="utf-8") as f:
             script_template = f.read()
 
         variable_string = ""
@@ -2297,7 +2296,6 @@ class Element(Plugin):
         _yaml.node_final_assertions(element_public)
 
         # Also, resolve any variables in the public split rules directly
-        new_base_splits = {}
         for domain, splits in self.node_items(base_splits):
             new_splits = []
             for index, split in enumerate(splits):
@@ -2443,7 +2441,7 @@ class Element(Plugin):
         strong_key = meta['strong']
         weak_key = meta['weak']
 
-        assert key == strong_key or key == weak_key
+        assert key in (strong_key, weak_key)
 
         self.__metadata_keys[strong_key] = meta
         self.__metadata_keys[weak_key] = meta
@@ -2500,7 +2498,7 @@ class Element(Plugin):
         # Parse the expensive yaml now and cache the result
         meta_file = os.path.join(artifact_base, 'meta', 'workspaced.yaml')
         meta = _yaml.load(meta_file)
-        workspaced = meta['workspaced']
+        workspaced = _yaml.node_get(meta, bool, 'workspaced')
 
         # Cache it under both strong and weak keys
         strong_key, weak_key = self.__get_artifact_metadata_keys(key)
@@ -2530,7 +2528,7 @@ class Element(Plugin):
         # Parse the expensive yaml now and cache the result
         meta_file = os.path.join(artifact_base, 'meta', 'workspaced-dependencies.yaml')
         meta = _yaml.load(meta_file)
-        workspaced = meta['workspaced-dependencies']
+        workspaced = _yaml.node_get(meta, list, 'workspaced-dependencies')
 
         # Cache it under both strong and weak keys
         strong_key, weak_key = self.__get_artifact_metadata_keys(key)

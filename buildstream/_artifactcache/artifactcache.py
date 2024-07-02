@@ -21,7 +21,8 @@ import multiprocessing
 import os
 import signal
 import string
-from collections import Mapping, namedtuple
+from collections import namedtuple
+from collections.abc import Mapping
 
 from ..types import _KeyStrength
 from .._exceptions import ArtifactError, CASError, LoadError, LoadErrorReason
@@ -333,7 +334,7 @@ class ArtifactCache():
         while self.get_cache_size() >= self._cache_lower_threshold:
             try:
                 to_remove = artifacts.pop(0)
-            except IndexError:
+            except IndexError as e:
                 # If too many artifacts are required, and we therefore
                 # can't remove them, we have to abort the build.
                 #
@@ -354,9 +355,8 @@ class ArtifactCache():
                 if self.has_quota_exceeded():
                     raise ArtifactError("Cache too full. Aborting.",
                                         detail=detail,
-                                        reason="cache-too-full")
-                else:
-                    break
+                                        reason="cache-too-full") from e
+                break
 
             key = to_remove.rpartition('/')[2]
             if key not in required_artifacts:
@@ -448,6 +448,10 @@ class ArtifactCache():
                 self._cache_size = stored_size
             else:
                 self.compute_cache_size()
+                # Computing cache doesn't actually write the value.
+                # Write cache size explicitly here since otherwise
+                # in some cases it's not stored on disk.
+                self.set_cache_size(self._cache_size)
 
         return self._cache_size
 
@@ -495,8 +499,8 @@ class ArtifactCache():
     def initialize_remotes(self, *, on_failure=None):
         remote_specs = self.global_remote_specs
 
-        for project in self.project_remote_specs:
-            remote_specs += self.project_remote_specs[project]
+        for _, project_specs in self.project_remote_specs.items():
+            remote_specs += project_specs
 
         remote_specs = list(utils._deduplicate(remote_specs))
 
@@ -775,7 +779,7 @@ class ArtifactCache():
                     element.info("Remote ({}) does not have {} cached".format(
                         remote.spec.url, display_key
                     ))
-            except BlobNotFound as e:
+            except BlobNotFound:
                 element.info("Remote ({}) does not have {} cached".format(
                     remote.spec.url, display_key
                 ))
@@ -865,19 +869,21 @@ class ArtifactCache():
     def _read_cache_size(self):
         size_file_path = os.path.join(self.context.artifactdir, CACHE_SIZE_FILE)
 
-        if not os.path.exists(size_file_path):
+        try:
+            with open(size_file_path, "r", encoding="utf-8") as f:
+                size = f.read()
+        except FileNotFoundError:
             return None
-
-        with open(size_file_path, "r") as f:
-            size = f.read()
 
         try:
             num_size = int(size)
-        except ValueError as e:
-            raise ArtifactError("Size '{}' parsed from '{}' was not an integer".format(
-                size, size_file_path)) from e
-
-        return num_size
+        except ValueError:
+            self._message(MessageType.WARN, "Failure resolving cache size",
+                          detail="Size '{}' parsed from '{}' was not an integer"
+                          .format(size, size_file_path))
+            return None
+        else:
+            return num_size
 
     # _calculate_cache_quota()
     #
@@ -920,7 +926,7 @@ class ArtifactCache():
             raise LoadError(LoadErrorReason.INVALID_DATA,
                             "Invalid cache quota ({}): ".format(utils._pretty_size(cache_quota)) +
                             "BuildStream requires a minimum cache quota of 2G.")
-        elif cache_quota > cache_size + available_space:  # Check maximum
+        if cache_quota > cache_size + available_space:  # Check maximum
             if '%' in self.context.config_cache_quota:
                 available = (available_space / total_size) * 100
                 available = '{}% of total disk space'.format(round(available, 1))
